@@ -165,6 +165,127 @@ function takeCommand(message) {
     } else {
       speak("Please provide a valid volume level between 0 and 100.");
     }
+  } else if (message.includes("movie details")) {
+    const movieName = message.replace("movie details", "").trim();
+    fetch(`https://www.omdbapi.com/?t=${movieName}&apikey=YOUR_OMDB_API_KEY`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.Response === "True") {
+          const movieInfo = `Here are the details for ${data.Title}: Released in ${data.Year}, Directed by ${data.Director}, and starring ${data.Actors}. Plot: ${data.Plot}`;
+          speak(movieInfo);
+        } else {
+          speak(`I couldn't find details about ${movieName}.`);
+        }
+      })
+      .catch(() => speak("There was an error fetching movie details."));
+  } else if (message.includes("recipe for")) {
+    const dish = message.replace("recipe for", "").trim();
+    fetch(
+      `https://api.spoonacular.com/recipes/complexSearch?query=${dish}&apiKey=YOUR_SPOONACULAR_API_KEY`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.results && data.results.length > 0) {
+          const recipe = `I found a recipe for ${data.results[0].title}. You can check it out here: ${data.results[0].sourceUrl}`;
+          speak(recipe);
+        } else {
+          speak(`I couldn't find a recipe for ${dish}.`);
+        }
+      })
+      .catch(() => speak("There was an error fetching recipes."));
+  } else if (message.includes("crypto price of")) {
+    const crypto = message.replace("crypto price of", "").trim().toLowerCase();
+    fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${crypto}&vs_currencies=usd`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        if (data[crypto]) {
+          const price = `The current price of ${crypto} is $${data[crypto].usd}.`;
+          speak(price);
+        } else {
+          speak(`I couldn't find the price for ${crypto}.`);
+        }
+      })
+      .catch(() => speak("There was an error fetching cryptocurrency prices."));
+  } else if (message.includes("stock price of")) {
+    const company = message.replace("stock price of", "").trim();
+    fetch(
+      `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${company}&interval=1min&apikey=YOUR_ALPHA_VANTAGE_API_KEY`
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        const timeSeries = data["Time Series (1min)"];
+        const latestTime = Object.keys(timeSeries)[0];
+        const stockPrice = timeSeries[latestTime]["1. open"];
+        speak(`The latest stock price of ${company} is $${stockPrice}.`);
+      })
+      .catch(() => speak("There was an error fetching stock prices."));
+  } else if (message.includes("calories in")) {
+    const foodItem = message.replace("calories in", "").trim();
+    fetch(`https://trackapi.nutritionix.com/v2/natural/nutrients`, {
+      method: "POST",
+      headers: {
+        "x-app-id": "YOUR_APP_ID",
+        "x-app-key": "YOUR_APP_KEY",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query: foodItem }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const calories = data.foods[0].nf_calories;
+        speak(`The approximate calories in ${foodItem} are ${calories}.`);
+      })
+      .catch(() => speak("I couldn't find calorie information for that item."));
+  } else if (message.includes("set a reminder")) {
+    const reminder = message.replace("set a reminder", "").trim();
+    const time = prompt("In how many minutes?");
+    if (time && !isNaN(time)) {
+      setTimeout(() => {
+        new Notification("Reminder", { body: reminder });
+        speak(`Reminder: ${reminder}`);
+      }, time * 60000);
+      speak(`I will remind you in ${time} minutes.`);
+    } else {
+      speak("Invalid time entered.");
+    }
+  } else if (message.includes("translate")) {
+    const [_, text, lang] = message.split(" to ");
+    fetch(
+      `https://translation.googleapis.com/language/translate/v2?key=YOUR_GOOGLE_TRANSLATE_API_KEY`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          q: text.trim(),
+          target: lang.trim(),
+        }),
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        const translatedText = data.data.translations[0].translatedText;
+        speak(`The translation is: ${translatedText}`);
+      })
+      .catch(() => speak("I couldn't translate that text."));
+  } else if (message.includes("lyrics of")) {
+    const song = message.replace("lyrics of", "").trim();
+    fetch(`https://api.lyrics.ovh/v1/artist/${song}`)
+      .then((response) => response.json())
+      .then((data) =>
+        speak(data.lyrics || "Sorry, I couldn't find the lyrics.")
+      )
+      .catch(() => speak("There was an error fetching the lyrics."));
+  } else if (message.includes("ask me a question")) {
+    fetch("https://opentdb.com/api.php?amount=1")
+      .then((response) => response.json())
+      .then((data) => {
+        const question = data.results[0].question;
+        const answer = data.results[0].correct_answer;
+        speak(question);
+        setTimeout(() => speak(`The answer is: ${answer}`), 10000);
+      })
+      .catch(() => speak("I couldn't fetch a trivia question."));
   } else if (message.includes("play music")) {
     const song = message.replace("play music", "").trim();
     window.open(
